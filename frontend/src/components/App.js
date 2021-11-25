@@ -1,15 +1,32 @@
-import React, {Component} from "react"
-import {render} from "react-dom"
+import React, { Component } from "react";
+import ReactDom from "react-dom";
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  Redirect,
+} from "react-router-dom";
+import Home from "./Home";
+import Dashboard from "./Dashboard";
 
-export default class App extends Component{
-    constructor(props){
-        super(props);
-    }
+class Welcome extends React.Component {
+  render() {
+    return <h1>Hello</h1>;
+  }
+}
 
-    render(){
-        return <h1>Testing react code</h1>
-    }
+function App() {
+  //   return (
+  //     <Router>
+  //       <Switch>
+  //         <Route exact path="/" component={Home}></Route>
+  //         <Route exact path="/dashboard" component={Dashboard}></Route>
+  //       </Switch>
+  //     </Router>
+  //   );
+  return <h1>Hello Worlsd</h1>;
 }
 
 const appDiv = document.getElementById("app");
-render(<App/>, appDiv);
+ReactDom.render(<Welcome />, appDiv);

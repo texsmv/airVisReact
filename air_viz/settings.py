@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'frontend.apps.FrontendConfig',
     'rest_framework',
     'livereload',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
