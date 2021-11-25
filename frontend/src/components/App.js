@@ -2,31 +2,27 @@ import React, { Component } from "react";
 import ReactDom from "react-dom";
 import {
   BrowserRouter as Router,
-  Switch,
+  Routes,
   Route,
   Link,
   Redirect,
 } from "react-router-dom";
-import Home from "./Home";
 import Dashboard from "./Dashboard";
-
-class Welcome extends React.Component {
-  render() {
-    return <h1>Hello</h1>;
-  }
-}
+import Home from "./Home";
 
 function App() {
-  //   return (
-  //     <Router>
-  //       <Switch>
-  //         <Route exact path="/" component={Home}></Route>
-  //         <Route exact path="/dashboard" component={Dashboard}></Route>
-  //       </Switch>
-  //     </Router>
-  //   );
-  return <h1>Hello Worlsd</h1>;
+  //   return <Home></Home>;
+  //   return <Dashboard></Dashboard>;
+  return (
+    <Router>
+      <Routes>
+        <Route exact path="/" element={<Home />}></Route>
+        <Route path="/dashboard" element={<Dashboard />}></Route>
+      </Routes>
+    </Router>
+  );
+  //   return <h1>Hello Worlsd</h1>;
 }
 
 const appDiv = document.getElementById("app");
-ReactDom.render(<Welcome />, appDiv);
+ReactDom.render(<App />, appDiv);
