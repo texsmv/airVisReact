@@ -4,7 +4,7 @@
 {%block content %} 
 {% load static %}
 
-<div class="container" style="position: relative">
+<div  class="container" style="position: relative">
   {% if not request.user.is_authenticated %}
   <h1>Welcome to FocusPlus</h1>
   <p>
@@ -12,21 +12,27 @@
     on your tasks.
   </p>
   {% else %}
-  <div id="svgHere" class="modal-body row"></div>
-  <div id="svg2Here" class="modal-body row"></div>
+  <div class="container">
+    <div class="row">
+      <div id="svgHere" class="col-sm"></div>
+      <div id="svg2Here" class="col-sm"></div>
+    </div>
+  </div>
 
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
   <script>
       d3.json("{% url 'windows' %}", function (error, data) {
-        var w = 200;
-        var h = 200;
+        var margin = {top: 10, right: 30, bottom: 30, left: 60},
+        scWidth = 400 - margin.left - margin.right,
+        scHeight = 400 - margin.top - margin.bottom;
+
         var r = 5;
-        console.log( data.length);
+
         for (var i = 0; i < data.length; i++) {
           var obj = data[i];
           var xscale = d3.scaleLinear()
-                .range([0,w])
+                .range([0,scWidth])
                 .domain([0,365]);
           obj['x_axis'] = d3.axisBottom().scale(xscale)
           obj['x_val']  = Array.from({length: 365}, (_, i) => i + 1)
@@ -44,30 +50,48 @@
         // var data = new Array(100).fill(null).map(m=>[Math.random(),Math.random()]);
         // console.log(data);
         // console.log(data[0]["x"]);
-        console.log(data);
-
-        var svg = d3
+        var svgArea = d3
           .select("#svgHere")
           .append("svg")
-          .attr("width", w)
-          .attr("height", h);
+          .attr("width", scWidth + margin.left + margin.right)
+          .attr("height", scHeight + margin.top + margin.bottom);
+
+        var svg = svgArea
+            .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+        
+        var x = d3.scaleLinear()
+          .domain([-30, 30])
+          .range([ 0, scWidth ]);
+        console.log(scHeight);
+        console.log(margin.bottom);
+        svg.append("g")
+          .attr("transform", "translate(0," + scHeight + ")")
+          .call(d3.axisBottom(x));
+        
+        var y = d3.scaleLinear()
+          .domain([0, 100])
+          .range([ scHeight, 0]);
+        svg.append("g")
+          .call(d3.axisLeft(y));
 
         var circles = svg
-          .selectAll("circle")
+          .append("g")
+          .selectAll(".dot")
           .data(data)
           .enter()
           .append("circle")
-          .attr("cx", (d) => d["x"] * 10)
-          .attr("cy", (d) => d["y"] * 2)
-          // .attr("cx",d=>d[0]* w)
-          // .attr("cy",d=>d[1] *h)
+          .attr("cx", (d) => x(d["x"]))
+          .attr("cy", (d) => y(d["y"]))
           .attr("r", r);
+        console.log(data);
 
         // Lasso functions
         var lasso_start = function () {
           lasso
             .items()
-            .attr("r", 3.5) // reset size
+            .attr("r", 5) // reset size
             .classed("not_possible", true)
             .classed("selected", false);
         };
@@ -150,13 +174,53 @@
         
 
         // Draw the line
-        svg2.selectAll(".line")
-            .data(data)
+        // svg2.selectAll(".line")
+           // .data(data)
+            // .enter()
+            // .append("path")
+               //.attr("fill", "none")
+              //.attr("stroke", '#377eb8')
+              //.attr("stroke-width", 1.5)
+              //.attr("d", function(d){
+              //  return d3.line()
+              //    .x(function(d) {
+              //      {% comment %} console.log(d[0]); {% endcomment %}
+              //      return (d[0]);
+              //    })
+              //    .y(function(d) { return d[1]; })
+              //    (d.path)
+              //})
+
+
+
+
+
+
+
+        function updateData(selectedData, unselectedData) {
+
+          {% comment %} var circles = svg
+          .selectAll(".dot")
+          .data(data)
+          .enter()
+          .selectAll("circle")
+          .attr("fill", '#348482' )
+          // .attr("cx",d=>d[0]* w)
+          // .attr("cy",d=>d[1] *h)
+          .attr("r", r); {% endcomment %}
+
+          path = svg2.selectAll("path");
+          path.remove();
+
+
+
+          svg2.selectAll(".line")
+            .data(selectedData)
             .enter()
             .append("path")
               .attr("fill", "none")
-              .attr("stroke", '#377eb8')
-              .attr("stroke-width", 1.5)
+              .attr("stroke", '#177eb8')
+              .attr("stroke-width", 2.5)
               .attr("d", function(d){
                 return d3.line()
                   .x(function(d) {
@@ -166,27 +230,49 @@
                   .y(function(d) { return d[1]; })
                   (d.path)
               })
+            
+          svg2.selectAll(".line")
+            .data(unselectedData)
+            .enter()
+            .append("path")
+              .attr("fill", "none")
+              .attr("stroke", '#872eb8')
+              .attr("stroke-width", 2.5)
+              .attr("d", function(d){
+                return d3.line()
+                  .x(function(d) {
+                    {% comment %} console.log(d[0]); {% endcomment %}
+                    return (d[0]);
+                  })
+                  .y(function(d) { return d[1]; })
+                  (d.path)
+              })
+          
+          
+          console.log("TEST");
+          console.log(selectedData);
+          console.log(data);
 
 
-
-
-
-
-
-        function updateData(data){
           console.log("LOGGING");
-          d3.select('#svg2Here').selectAll(".line").data(data).enter().append("path")
+          var line = d3.select('#svg2Here').selectAll(".line").data(data)
+          console.log(line)
+          line.select('path')
+            .attr("stroke-width", 3.5)
+          
+
+
+
+          line.exit().remove(); 
+          {% comment %} .enter().append("path")
           .style('stroke', function(d,i) {
-            console.log(d);
-            console.log(i);
+            
             return '#771e48';
           })
           .style('fill', function(d,i) {
-            console.log(d);
-            console.log(i);
-            console.log("Calling?");
+            
               return '#771e48';
-          })
+          }) {% endcomment %}
         }
 
 
@@ -201,19 +287,46 @@
 
           // Reset the style of the not selected dots
           lasso.notSelectedItems().attr("r", 3.5);
-          console.log("selectesd");
-          var mySelectedArray = [];
+
+          var selectedArray = [];
+          var notSelectedArray = [];
 
           var selected = lasso.selectedItems().filter(function (d) {
             console.log(d);
+            selectedArray.push(d);
             return d.selected === true;
           });
 
-          updateData(data);
-          {% comment %} console.log(selected);
-          selected[0].forEach(function(d){
-              mySelectedArray.push(d3.select(d).datum())
-          }); {% endcomment %}
+          var notSelected = lasso.notSelectedItems().filter(function (d) {
+            console.log(d);
+            notSelectedArray.push(d);
+            return d.selected === true;
+          });
+
+
+
+          console.log('arr')
+          console.log(selected)
+          console.log(lasso.selectedItems())
+
+          selectedData = lasso.selectedItems().classed("selected", true);
+
+          {% comment %} var circles = svg
+          .selectAll("circle")
+          .attr("fill", '#948082' )
+          .attr("r", 6); {% endcomment %}
+
+          selectedData
+            .attr("fill", '#948082' )
+            .attr("r", 6)
+          
+          lasso.notSelectedItems()
+            .attr("r", 3.5)
+            .attr("fill", '#000000');
+
+
+          updateData(selectedArray, notSelectedArray);
+          
 
         };
         var lasso = d3
@@ -221,12 +334,12 @@
           .closePathSelect(true)
           .closePathDistance(100)
           .items(circles)
-          .targetArea(svg)
+          .targetArea(svgArea)
           .on("start", lasso_start)
           .on("draw", lasso_draw)
           .on("end", lasso_end);
 
-        svg.call(lasso);
+        svgArea.call(lasso);
 
 
 
