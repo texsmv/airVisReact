@@ -1,0 +1,240 @@
+{% extends 'api/layout.html' %} 
+{% load unicorn %} 
+{% unicorn_scripts %} 
+{%block content %} 
+{% load static %}
+
+<div class="container" style="position: relative">
+  {% if not request.user.is_authenticated %}
+  <h1>Welcome to FocusPlus</h1>
+  <p>
+    FocusPlus is a web application that allows you to track your time and focus
+    on your tasks.
+  </p>
+  {% else %}
+  <div id="svgHere" class="modal-body row"></div>
+  <div id="svg2Here" class="modal-body row"></div>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
+  <script>
+      d3.json("{% url 'windows' %}", function (error, data) {
+        var w = 200;
+        var h = 200;
+        var r = 5;
+        console.log( data.length);
+        for (var i = 0; i < data.length; i++) {
+          var obj = data[i];
+          var xscale = d3.scaleLinear()
+                .range([0,w])
+                .domain([0,365]);
+          obj['x_axis'] = d3.axisBottom().scale(xscale)
+          obj['x_val']  = Array.from({length: 365}, (_, i) => i + 1)
+
+
+          obj['path'] = Array.from({length: 365}, (_, i) => [0,1])
+
+          for (var j = 0; j < 365; j++) {
+            obj.path[j][1] = obj.values[j];
+            obj.path[j][0] = obj.x_val[j];
+          }
+          data[i] = obj
+
+        }
+        // var data = new Array(100).fill(null).map(m=>[Math.random(),Math.random()]);
+        // console.log(data);
+        // console.log(data[0]["x"]);
+        console.log(data);
+
+        var svg = d3
+          .select("#svgHere")
+          .append("svg")
+          .attr("width", w)
+          .attr("height", h);
+
+        var circles = svg
+          .selectAll("circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => d["x"] * 10)
+          .attr("cy", (d) => d["y"] * 2)
+          // .attr("cx",d=>d[0]* w)
+          // .attr("cy",d=>d[1] *h)
+          .attr("r", r);
+
+        // Lasso functions
+        var lasso_start = function () {
+          lasso
+            .items()
+            .attr("r", 3.5) // reset size
+            .classed("not_possible", true)
+            .classed("selected", false);
+        };
+
+        var lasso_draw = function () {
+          // Style the possible dots
+          lasso
+            .possibleItems()
+            .classed("not_possible", false)
+            .classed("possible", true);
+
+          // Style the not possible dot
+          lasso
+            .notPossibleItems()
+            .classed("not_possible", true)
+            .classed("possible", false);
+        };
+
+        
+
+
+
+
+
+
+
+
+
+
+
+      var margin = {top: 10, right: 30, bottom: 30, left: 60},
+      width = 460 - margin.left - margin.right,
+      height = 400 - margin.top - margin.bottom;
+
+      var svg2 = d3.select("#svg2Here")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+      console.log("Holi");
+
+        {% comment %} for (var i = 0; i < data.length; i++) {
+          var obj = data[i];
+          var xscale = d3.scaleLinear()
+                .range([0,width])
+                .domain([0,365]);
+          obj['x_axis'] = d3.axisBottom().scale(xscale)
+          obj['x_val']  = Array.from({length: 365}, (_, i) => i + 1)
+
+
+          obj['path'] = Array.from({length: 365}, (_, i) => [0,1])
+
+          for (var j = 0; j < 365; j++) {
+            obj.path[j][0] = obj.values[j];
+            obj.path[j][1] = obj.x_val[j];
+          }
+          data[i] = obj
+
+        } {% endcomment %}
+
+        // Add X axis --> it is a date format
+        var x = d3.scaleLinear()
+          .domain(d3.extent(data, function(d) { return d.values; }))
+          .range([ 0, width ]);
+        svg2.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .call(d3.axisBottom(x).ticks(5));
+
+        // Add Y axis
+        var y = d3.scaleLinear()
+          .domain([0, d3.max(data, function(d) { return +d.x_val; })])
+          .range([ height, 0 ]);
+
+        svg2.append("g")
+          .call(d3.axisLeft(y));
+
+        
+
+        // Draw the line
+        svg2.selectAll(".line")
+            .data(data)
+            .enter()
+            .append("path")
+              .attr("fill", "none")
+              .attr("stroke", '#377eb8')
+              .attr("stroke-width", 1.5)
+              .attr("d", function(d){
+                return d3.line()
+                  .x(function(d) {
+                    {% comment %} console.log(d[0]); {% endcomment %}
+                    return (d[0]);
+                  })
+                  .y(function(d) { return d[1]; })
+                  (d.path)
+              })
+
+
+
+
+
+
+
+        function updateData(data){
+          console.log("LOGGING");
+          d3.select('#svg2Here').selectAll(".line").data(data).enter().append("path")
+          .style('stroke', function(d,i) {
+            console.log(d);
+            console.log(i);
+            return '#771e48';
+          })
+          .style('fill', function(d,i) {
+            console.log(d);
+            console.log(i);
+            console.log("Calling?");
+              return '#771e48';
+          })
+        }
+
+
+        
+
+        var lasso_end = function () {
+          // Reset the color of all dots
+          lasso.items().classed("not_possible", false).classed("possible", false);
+
+          // Style the selected dots
+          lasso.selectedItems().classed("selected", true).attr("r", 7);
+
+          // Reset the style of the not selected dots
+          lasso.notSelectedItems().attr("r", 3.5);
+          console.log("selectesd");
+          var mySelectedArray = [];
+
+          var selected = lasso.selectedItems().filter(function (d) {
+            console.log(d);
+            return d.selected === true;
+          });
+
+          updateData(data);
+          {% comment %} console.log(selected);
+          selected[0].forEach(function(d){
+              mySelectedArray.push(d3.select(d).datum())
+          }); {% endcomment %}
+
+        };
+        var lasso = d3
+          .lasso()
+          .closePathSelect(true)
+          .closePathDistance(100)
+          .items(circles)
+          .targetArea(svg)
+          .on("start", lasso_start)
+          .on("draw", lasso_draw)
+          .on("end", lasso_end);
+
+        svg.call(lasso);
+
+
+
+      });
+
+      // console.log(data);
+  </script>
+  {% endif %}
+</div>
+
+{% endblock %}

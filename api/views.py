@@ -9,10 +9,12 @@ class DatasetView(generics.ListAPIView):
     serializer_class = DatasetSerializer
 
 class AnnualWindowsView(generics.ListAPIView):
-    queryset = AnnualWindow.objects.all()[:5]
+    queryset = AnnualWindow.objects.all()[:100]
     serializer_class = AnnualWindowSerializer
 
 
 def main(request):
-    return HttpResponse('Hello')
-    return render(request, 'main.html')
+    context = {
+        'jsonD': AnnualWindowsView.queryset
+    }
+    return render(request, 'api/home.html', context)
