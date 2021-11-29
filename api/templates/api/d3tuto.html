@@ -1,0 +1,229 @@
+{% comment %} <!doctype html>
+<html>
+<head>
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+</head>
+<body>
+    
+
+    <script>
+        var data = [
+            {title: "A", value: 53},
+            {title: "B", value: 12},
+            {title: "C", value: 91},
+            {title: "D", value: 24},
+            {title: "E", value: 59}
+        ];
+        var width = 500;
+        var height = 500;
+
+        var xScale = d3.scale.linear() 
+            .domain([0, 100]) 
+            .range([0, 240]); 
+    
+        var yScale = d3.scale.linear() 
+            .domain([0, data.length]) 
+            .range([0, 120]);
+
+
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+
+        var bars = svg.selectAll(".bars")
+            .data(data);
+
+        bars.enter()
+            .append("rect")
+            .attr("class", "bars")
+            .attr("x", xScale(0))
+            .attr("y", function(d){ return yScale(d.title)})
+            .attr("width", 0)
+            .attr("height", yScale.bandwidth())
+            .transition()
+            .duration(1000)
+            .delay(function(d,i){ return i*200})
+            .attr("width", function(d){ return xScale(d.value) - margin.left});
+
+
+    </script>
+</body>
+</html> {% endcomment %}
+
+{% comment %} <!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@observablehq/inspector@3/dist/inspector.css">
+<body>
+<script type="module">
+
+import {Runtime, Inspector} from "https://cdn.jsdelivr.net/npm/@observablehq/runtime@4/dist/runtime.js";
+import define from "https://api.observablehq.com/@observablehq/hello-world.js?v=3";
+
+const runtime = new Runtime();
+const main = runtime.module(define, name => {
+  if (name === "hello") {
+    const node = document.createElement("DIV");
+    document.body.appendChild(node);
+    return new Inspector(node);
+  }
+});
+
+</script> {% endcomment %}
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite-api@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-tooltip"></script>
+  </head>
+  <body>
+    <div id="view"></div>
+
+    <script>
+      // setup API options
+      const options = {
+        config: {
+          // Vega-Lite default configuration
+        },
+        init: (view) => {
+          // initialize tooltip handler
+          view.tooltip(new vegaTooltip.Handler().call);
+        },
+        view: {
+          // view constructor options
+          // remove the loader if you don't want to default to vega-datasets!
+          
+          renderer: "canvas",
+        },
+      };
+
+      // register vega and vega-lite with the API
+      vl.register(vega, vegaLite, options);
+
+
+        vl.markBar({ opacity: 0.4 })
+  .params(
+    vl.param('Year').value(2000).bind(vl.slider(1850, 2000, 10))
+  )
+  .data('data/population.json')
+  .transform(
+    vl.calculate('datum.sex === 1 ? "Male" : "Female"').as('sex'),
+    vl.filter('datum.year === Year')
+  )
+  .encode(
+    vl.x().sum('people').scale({ domain: [0, 12e6] }).stack(null).title('People'),
+    vl.y().fieldO('age').sort('descending').title('Age'),
+    vl.color().fieldN('sex').scale({ range: ['#675193', '#ca8861'] }).title('Sex')
+  )
+  .height(300) // fix the height to keep stability over missing data
+  .render().then(viewElement => {
+          // render returns a promise to a DOM element containing the chart
+          // viewElement.value contains the Vega View object instance
+          document.getElementById('view').appendChild(viewElement);
+        });
+
+      
+    </script>
+  </body>
+</html> {% endcomment %}
+
+
+
+<!doctype html>
+<html>
+    <head>
+        <style>
+            svg {width:500px; height:500px}
+            button  {float:left}
+            line    {stroke:#ddd;shape-rendering: crispEdges;}
+            text    {text-anchor:middle;}
+            circle {fill:orange;stroke:orange;fill-opacity:0.5;}
+            .axis line {fill:none;stroke:#ddd;shape-rendering: crispEdges;}
+            .axis path  {fill:none;}
+            .axis text {font-size:0.7em;fill:#555;font-family:sans-serif}
+        </style>
+        <script src="https://d3js.org/d3.v3.js"></script>
+    </head>
+    <body>
+        
+        <script>
+            
+            //2 different data arrays
+            var dataArray1 = [30,35,45,55,70];
+            var dataArray2 = [50,55,45,35,20,25,25,40];
+            
+            //globals
+            var dataIndex=1;
+            var xBuffer=50;
+            var yBuffer=150;
+            var lineLength=400;
+            
+            
+            //create main svg element
+            var svgDoc = d3.select("body").append("svg")
+
+            svgDoc.append("text")
+                .attr("x",xBuffer+(lineLength/2))
+                .attr("y",50)
+                .text("dataset"+dataIndex);
+            
+            //create axis line
+            svgDoc.append("line")
+                .attr("x1",xBuffer)
+                .attr("y1",yBuffer)
+                .attr("x1",xBuffer+lineLength)
+                .attr("y2",yBuffer)
+            
+            //create basic circles
+            svgDoc.append("g").selectAll("circle")
+                .data(dataArray1)
+                .enter()
+                .append("circle")
+                .attr("cx",function(d,i){
+                    var spacing = lineLength/(eval("dataArray"+dataIndex).length);
+                    return xBuffer+(i*spacing)
+                })
+                .attr("cy",yBuffer)
+                .attr("r",function(d,i){return d});
+            
+            //button to swap over datasets
+            d3.select("body").append("button")
+                .text("change data")
+                .on("click",function(){
+                    //select new data
+                    if (dataIndex==1) {
+                        dataIndex=2;  
+                    } else   {
+                        dataIndex=1;
+                    }
+                    //rejoin data
+                    var circle = svgDoc.select("g").selectAll("circle")
+                        .data(eval("dataArray"+dataIndex));
+                    
+                    circle.exit().remove();//remove unneeded circles
+                    circle.enter().append("circle")
+                        .attr("r",0);//create any new circles needed
+
+                    //update all circles to new positions
+                    circle.transition()
+                        .duration(500)
+                        .attr("cx",function(d,i){
+                            var spacing = lineLength/(eval("dataArray"+dataIndex).length);
+                            return xBuffer+(i*spacing)
+                        })
+                        .attr("cy",yBuffer)
+                        .attr("r",function(d,i){return d});
+
+                    d3.select("text").text("dataset"+dataIndex);
+
+                });//end click function
+
+            
+        </script>
+    </body>
+</html>

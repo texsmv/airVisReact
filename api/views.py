@@ -18,3 +18,6 @@ def main(request):
         'jsonD': AnnualWindowsView.queryset
     }
     return render(request, 'api/home.html', context)
+
+def d3Tuto(request):
+    return render(request, 'api/d3tuto.html')
