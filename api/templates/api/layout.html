@@ -1,0 +1,182 @@
+{% load unicorn %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CodePen - bootstrap sidebar</title>
+    {% load static %}
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
+    <link rel="stylesheet" href="{% static 'api/layout.css' %}" />
+
+    
+    {% unicorn_scripts %}
+  </head>
+  <body style="height: 100%">
+    <!-- partial:index.partial.html -->
+    <nav class="mnb navbar navbar-default navbar-fixed-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button
+          type="button"
+          class="navbar-toggle collapsed"
+          data-toggle="collapse"
+          data-target="#navbar"
+          aria-expanded="false"
+          aria-controls="navbar"
+          >
+          <span class="sr-only">Toggle navigation</span>
+          <i class="ic fa fa-bars"></i>
+        </button>
+        <div style="padding: 15px 0">
+          <a href="#" id="msbo"><i class="ic fa fa-bars"></i></a>
+        </div>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          {% if request.user.is_authenticated %}
+          <li class="dropdown">
+            <a
+            href="#"
+            class="dropdown-toggle"
+            data-toggle="dropdown"
+            role="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            >
+            {{ user.get_username }} <span class="caret"></span
+              ></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Settings</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a href="#">Logout</a></li>
+              </ul>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="#">Login</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Register</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+    
+    <!--msb: main sidebar-->
+    |
+    <div class="msb" id="msb">
+      <nav class="navbar navbar-default" role="navigation">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <div class="brand-wrapper">
+            <!-- Brand -->
+            <div class="brand-name-wrapper">
+              <a class="navbar-brand" href="#"> Focus+ </a>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div class="side-menu-container">
+          <ul class="nav navbar-nav">
+            <li
+            class="
+            {%
+              if
+              request.resolver_match.url_name
+              ==
+              'feed'
+              %}
+              active
+              {%
+                endif
+                %}
+                "
+                >
+                <a href="#"
+                ><i class="fa fa-dashboard"></i> Dashboard
+              </a>
+            </li>
+            {% comment %} <li
+            class="
+            {%
+              if
+              request.resolver_match.url_name
+              ==
+              'habits'
+              %}
+              active
+              {%
+                endif
+                %}
+                "
+                >
+                <a href="#"
+                ><i class="fa fa-puzzle-piece"></i> Habits</a
+                >
+              </li>
+              <li
+              class="
+              {%
+                if
+                request.resolver_match.url_name
+                ==
+                'tasks'
+                %}
+                active
+                {%
+                  endif
+                  %}
+                  "
+                  >
+                  <a href="#"
+                  ><i class="fa fa-heart"></i> Tasks</a
+                  >
+                </li> {% endcomment %}
+                <li
+                class="
+                {%
+                  if
+                  request.resolver_match.url_name
+                  ==
+                  'categories'
+                  %}
+                  active
+                  {%
+                    endif
+                    %}
+                    "
+                    >
+                    <a href="#"
+                    ><i class="fa fa-heart"></i> DetailView</a
+                    >
+                  </li>
+                </ul>
+              </div>
+              <!-- /.navbar-collapse -->
+            </nav>
+          </div>
+          <!--main content wrapper-->
+          <!-- partial -->
+          <div class="mcw">{% block content %} {% endblock %}</div>
+
+
+          <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+          <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+          <script src="{% static 'api/d3-lasso.min.js' %}"></script>
+          <!-- <script src="https://d3js.org/d3.v7.min.js"></script> -->
+          <!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+          <!-- <script src="./d3-lasso.min.js"></script> -->
+          <!-- <script src="{% static 'api/lasso/index.js' %}"></script> -->
+        </body>
+        </html>
+        

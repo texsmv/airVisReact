@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,7 +42,30 @@ INSTALLED_APPS = [
     'rest_framework',
     'livereload',
     'django_extensions',
+    'django_unicorn',
+    # 'compressor',
+    # 'compressor_toolkit',
 ]
+
+# STATICFILES_FINDERS = (
+#     'compressor.finders.CompressorFinder',
+# )
+
+# COMPRESS_CSS_FILTERS = [
+#     'compressor.filters.css_default.CssAbsoluteFilter',
+#     'compressor.filters.cssmin.CSSMinFilter',
+#     'compressor.filters.template.TemplateFilter'
+# ]
+# COMPRESS_JS_FILTERS = [
+#     'compressor.filters.jsmin.JSMinFilter',
+# ]
+# COMPRESS_PRECOMPILERS = (
+#     ('module', 'compressor_toolkit.precompilers.ES6Compiler'),
+#     ('css', 'compressor_toolkit.precompilers.SCSSCompiler'),
+# )
+# COMPRESS_ENABLED = True
+
+# COMPRESS_OFFLINE = True
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -132,3 +155,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATIC_ROOT = '/static/'
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'node_modules'),
+)

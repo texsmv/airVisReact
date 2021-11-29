@@ -10,8 +10,9 @@ var scope = {
 
 function Dashboard(props) {
   // return <h1>Home dash</h1>;
+  // style={{ backgroundColor: "#00B1E1" }}
   return (
-    <div style={{ backgroundColor: "#00B1E1" }}>
+    <div>
       <ol>
         <li>
           <p>Dashboard</p>
