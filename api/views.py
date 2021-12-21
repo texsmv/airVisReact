@@ -7,12 +7,13 @@ from api.models import AnnualWindow, Dataset, Pollutant, Station
 from django.views.generic import ListView
 from django.core import serializers
 from django.http import JsonResponse
+from sklearn.preprocessing import minmax_scale
 
 import json
 import numpy as np
 import umap
 
-def scale_layout(points, bound=[-1, 1]):
+def scale_layout2(points, bound=[-1, 1]):
     p_min = np.min(points, axis=0)
     p_max = np.max(points, axis=0)
 
@@ -27,6 +28,26 @@ def scale_layout(points, bound=[-1, 1]):
 
     return bound[0] + (offset + points - p_min) * s
 
+def scale_layout(points, bound=[-1, 1]):
+    coordinates_x = points[:, 0]
+    coordinates_y = points[:, 1]
+    coordinates_x = scale_array(coordinates_x, bound)
+    coordinates_y = scale_array(coordinates_y, bound)
+    return np.array([coordinates_x, coordinates_y]).T
+
+def scale_array(arr, bound=[-1, 1]):
+    arr_min = np.min(arr)
+    arr_max = np.max(arr)
+
+    w = arr_max - arr_min
+    d = max([w])
+
+    s = 1.0
+    if d > 0:
+        s = (bound[1] - bound[0]) / d
+    offset = (d - w) * .5
+
+    return bound[0] + (offset + arr - arr_min) * s
 
 class DatasetsListView(ListView):
     model = Dataset
@@ -116,7 +137,11 @@ def pollutant_projection(request, dataset_id, pollutant_id):
     shapeDescr = transformer.fit_transform(dist_shape)
     for i in range(n):
         coordinates[i][0] = shapeDescr[i]
+    print(coordinates)
     coordinates = scale_layout(coordinates)
+    print(coordinates)
+    print(coordinates.min())
+    print(coordinates.max())
 
     data = {
         'coordenates': coordinates.tolist(),
@@ -157,7 +182,7 @@ def windowsData(request, dataset_id):
     windowsAll = AnnualWindow.objects.filter(pollutant=firstPollutant, station__dataset=dataset)
     n = len(windowsAll)
     # embeddings = [window.embedding for window in windows]
-    pollutants = Pollutant.objects.all()
+    pollutants = Pollutant.objects.filter(dataset = dataset)
 
     distm_shape = {}
     distm_mean = {}
@@ -181,9 +206,11 @@ def windowsData(request, dataset_id):
                 distm_mean[pollutant.name][i, j] = np.linalg.norm(windows[i].magnitud - windows[j].magnitud)
         is_done = False
 
-    alphas = {'NO_2':1.0, 'PM10':1.0, 'O_3':0.0, 'CO':0.0, 'SO_2':1.0}
+    alphas = { pollutants[i].name: 1.0 for i in range(len(pollutants)) }
+    # alphas = {'NO_2':1.0, 'PM10':1.0, 'O_3':0.0, 'CO':0.0, 'SO_2':1.0}
     ratio = 0.5
-    sel = 'NO_2'
+    # sel = 'NO_2'
+    sel = pollutants[0].name
 
     is_done = True
     for pollutant in pollutants:
@@ -196,15 +223,25 @@ def windowsData(request, dataset_id):
     
     transformer = umap.UMAP(metric='precomputed', n_components=2)
     coordinates = transformer.fit_transform(distm)
-    coordinates = scale_layout(coordinates)
 
     transformer2 = umap.UMAP(metric='precomputed', n_components=1)
     shapeDescr = transformer2.fit_transform(dists)
 
     for i in range(n):
         coordinates2[i][0] = shapeDescr[i]
-    coordinates2 = scale_layout(coordinates2)
+    
+    print(coordinates2[:, 0].min())
+    print(coordinates2[:, 0].max())
+    print(coordinates[:, 0].min())
+    print(coordinates[:, 0].max())
+    print(coordinates2[:, 1].min())
+    print(coordinates2[:, 1].max())
+    print(coordinates[:, 1].min())
+    print(coordinates[:, 1].max())
 
+
+    coordinates = scale_layout(coordinates)
+    coordinates2 = scale_layout(coordinates2)
 
     for i in range(n):
         windowsAll[i].g_x = coordinates[i][0]
@@ -212,7 +249,16 @@ def windowsData(request, dataset_id):
         windowsAll[i].x = coordinates2[i][0]
         windowsAll[i].y = coordinates2[i][1]
         windowsAll[i].save()
+    print('=------=')
 
+    print(coordinates2[:, 0].min())
+    print(coordinates2[:, 0].max())
+    print(coordinates[:, 0].min())
+    print(coordinates[:, 0].max())
+    print(coordinates2[:, 1].min())
+    print(coordinates2[:, 1].max())
+    print(coordinates[:, 1].min())
+    print(coordinates[:, 1].max())
 
     return JsonResponse(serializers.serialize('json', AnnualWindow.objects.filter(pollutant = firstPollutant)), safe=False)
 
