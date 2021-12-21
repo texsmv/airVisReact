@@ -13,14 +13,29 @@ class Station(models.Model):
 
 class Pollutant(models.Model):
     name = models.CharField(max_length=50)
+    dataset = ForeignKey(Dataset, on_delete=models.CASCADE, null=True, blank=True)
 
 
 class AnnualWindow(models.Model):
     pollutant = ForeignKey(Pollutant, on_delete=models.CASCADE)
     station = ForeignKey(Station, on_delete=models.CASCADE)
     begin_date = models.DateTimeField()
-    x = models.FloatField()
-    y = models.FloatField()
+    x = models.FloatField(null=True, blank=True)
+    y = models.FloatField(null=True, blank=True)
+    o_x = models.FloatField(null=True, blank=True)
+    o_y = models.FloatField(null=True, blank=True)
+    g_x = models.FloatField(null=True, blank=True)
+    g_y = models.FloatField(null=True, blank=True)
+
+    features = ArrayField(
+        models.FloatField(),
+        null=True,
+        size=10,
+    )
+    
+    magnitud = models.FloatField(null=True)
+    
+    
     values = ArrayField(
         models.FloatField(),
         size=365,
@@ -29,3 +44,6 @@ class AnnualWindow(models.Model):
         models.FloatField(),
         size=365,
     )
+
+    def dataset(self):
+        return self.station.dataset

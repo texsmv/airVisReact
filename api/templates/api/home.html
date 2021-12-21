@@ -12,32 +12,391 @@
     on your tasks.
   </p>
   {% else %}
-  <div class="container">
-    <div class="row">
-      <div id="svgHere" class="col-sm"></div>
-      <div id="svg2Here" class="col-sm"></div>
+  <div class="container-fluid">
+    <div class="col-md-10">
+      <div class="row">
+        <div class="col-md-2">
+          {% for pollutant in pollutants %}
+            <div class="row">
+              <div style="width: 5cm;" class="col-md-1">
+                <label for="customRange1" class="form-label">{{ pollutant.name }}</label>
+                <input type="range" class="form-range" id="range1" onchange='showVal(this.value, {{pollutant.id}})' min="0" max="1" step="0.01" value="1">
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <div id="mainProj" style="width: 20cm;" class="col-md-1">
+            <h2>Main projection</h2>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          {% for pollutant in pollutants %}
+            <button type="button" onclick="selectPollutant({{pollutant.id}})" class="btn btn-secondary">{{pollutant.name}}</button>
+          {% endfor %}
+          <div id="pollutantProj" style="width: 9cm;" class="col-md-1">
+            <h4 id='selectedPollutantTitle'>  Projection for: {{selected_pollutant.name}}</h4>
+          </div>
+          <p>----------------- Shape axis -------------------</p>
+        </div>
+        <div class="col-md-4">
+          <div id="timeSeries" style="width: 9cm;" class="col-md-1">
+            <h3>Time series</h3>
+            <br>
+          </div>
+        </div>
+        <div class="col-md-4">
+            
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2">
+      <div class="row">
+        <h3> Stations </h3>
+      </div>
+
+      {% for station in stations %}
+        <div class="row">
+          <button id = 'station_{{station.id}}' type="button" onclick="selectStation({{station.id}})" class="btn btn-secondary">{{station.name}}</button>
+        </div>
+      {% endfor %}
+
+      <div class="row">
+        <h3> Years </h3>
+      </div>
+
+      {% for year in years %}
+        <div class="row">
+          <button id = 'year_{{year}}' type="button" onclick="selectYear({{year}})" class="btn btn-secondary">{{year}}</button>
+        </div>
+      {% endfor %}
     </div>
   </div>
 
+    
+  
+  <script>
+    var points = []
+    var pollutant_coordenates = []
+    var windows = []
+    var norm_windows = []
+
+    var all_pollutants = []
+    var selected_pollutant = {}
+
+    var lassoMain = 0
+    var lassoPollutant = 0
+
+    selected_pollutant['name'] = '{{selected_pollutant.name}}'
+    selected_pollutant['id'] = '{{selected_pollutant.name}}'
+
+    {% for pollutant in pollutants %}
+      var data = {}
+      data['name'] = '{{pollutant.name}}'
+      data['id'] = '{{pollutant.id}}'
+      data['val'] = 1
+      all_pollutants.push(data)
+    {% endfor %}
+
+    station_colors = {}
+    {% for station in stations %}
+      station_colors['{{station.id}}'] = '#' + Math.floor(Math.random()*16777215).toString(16)
+      document.getElementById('station_{{station.id}}').style.background=station_colors['{{station.id}}'];
+    {% endfor %}
+
+    years_colors = {}
+    {% for year in years %}
+      years_colors['{{year}}'] = '#' + Math.floor(Math.random()*16777215).toString(16)
+      document.getElementById('year_{{year}}').style.background=years_colors['{{year}}'];
+    {% endfor %}
+
+
+    function updateMainCircles(){
+
+      // Update main view
+      var xMain = d3.scaleLinear()
+      .domain([-1, 1])
+      .range([ 0, mainWidth ]);
+      
+      var yMain = d3.scaleLinear()
+        .domain([-1, 1])
+        .range([ mainHeight, 0]);
+  
+      circlesMain = mainProjectionSvg.selectAll("circle");
+      circlesMain.remove();
+  
+      var circlesMain = mainProjectionSvg
+      .append("g")
+      .selectAll(".dot")
+      .data(points)
+      .enter()
+      .append("circle")
+      .style('fill', function(d,i) {
+          return d.color;
+      })
+      .attr("cx", (d) => xMain(d.m_pos[0]))
+      .attr("cy", (d) => yMain(d.m_pos[1]))
+      .attr("r", function(d,i) {
+        return d.r;
+      });
+      
+      circlesMain = mainProjectionSvg.selectAll("circle");
+  
+      lassoMain.items(circlesMain)
+    }
+
+    function updatePollutantCircles(){
+
+      // Update main view
+      var xPoll = d3.scaleLinear()
+        .domain([-1, 1])
+        .range([ 0, spanelWidth ]);
+      
+      var yPoll = d3.scaleLinear()
+        .domain([-1, 1])
+        .range([ spanelHeight, 0]);
+
+      circlesPoll = pollutantProjectionSvg.selectAll("circle");
+      circlesPoll.remove();
+
+      var circlesPoll = pollutantProjectionSvg
+      .append("g")
+      .selectAll(".dot")
+      .data(points)
+      .enter()
+      .append("circle")
+      .style('fill', function(d,i) {
+          return d.color;
+      })
+      .attr("cx", (d) => xPoll(d.p_pos[0]))
+      .attr("cy", (d) => yPoll(d.p_pos[1]))
+      .attr("r", radiusUnselected);
+      
+      circlesPoll = pollutantProjectionSvg.selectAll("circle");
+      lassoPollutant.items(circlesPoll);
+    }
+
+    function updateSeries(){
+      var x = d3.scaleLinear()
+      .domain(365)
+      .range([ 0, spanelWidth ]);
+      var y = d3.scaleLinear()
+      .domain([0, 100])
+      .range([ spanelHeight, 0 ]);
+    
+      
+      
+
+      path = timeSeriesSvg.selectAll("path");
+      path.remove();
+      
+      timeSeriesSvg.selectAll(".line")
+        .data(points)
+        .enter()
+        .append("path")
+          .attr("fill", 'none')
+          .attr("stroke-width", 2.5)
+          .attr("stroke", function(d,i) {
+            console.log(d.color)
+            return d.color;
+          })
+          .attr("d", function(d){
+            return d3.line()
+              .x(function(d) {
+                return d[0];
+              })
+              .y(function(d) { return y(d[1]); })
+              (d.serie)
+          })
+        
+        timeSeriesSvg.append("g")
+          .attr("transform", "translate(0," + spanelHeight  + ")")
+          .call(d3.axisBottom(x));
+        
+        timeSeriesSvg.append("g")
+          .attr("transform", "translate(30, 0)")
+          .call(d3.axisLeft(y));
+
+        
+    }
+
+
+    function selectPollutant(pollutant_id){
+      base_url = "/main/pollutant_projection/{{dataset.id}}/"
+      pol_name = ''
+      for(var i =0; i< all_pollutants.length; i++ ){
+        if(all_pollutants[i]['id'] == pollutant_id){
+          pol_name = all_pollutants[i]['name']
+        }
+      }
+      document.getElementById("selectedPollutantTitle").innerHTML = 'Projection for: ' + pol_name;
+      d3.json(base_url + pollutant_id, function(error, data){
+        console.log(data)
+        var data = JSON.parse(data);
+        var coordenates = data['coordenates']
+        var series = data['series']
+
+        for (var i = 0; i < coordenates.length; i++){
+          points[i]['p_pos'] = coordenates[i]
+
+          for (var j = 0; j < 365; j++) {
+            points[i]['serie'][j][1] = series[i][j];
+          }
+
+          console.log(points[i]['serie']);
+        }
+        updatePollutantCircles();
+        updateSeries();
+      })
+    }
+
+    function selectStation(station_id){
+      resetSelection()
+      for( var i = 0; i < points.length; i++){
+        if(points[i]['station_id'] == station_id){
+          //points[i]['color'] = 'rgba(0, 0, 250, 1)'
+          //points[i]['color'] = '#' + Math.floor(Math.random()*16777215).toString(16)
+          points[i]['color'] = station_colors[station_id]
+          points[i]['r'] = radiusSelected
+        }else{
+          points[i]['color'] = 'rgba(0, 0, 0, 0.1)'
+          points[i]['r'] = radiusUnselected
+        }
+      }
+      updateMainCircles()
+      updatePollutantCircles()
+      updateSeries()
+    }
+
+    function selectYear(year){
+      resetSelection()
+      for( var i = 0; i < points.length; i++){
+        if(points[i]['year'] == year){
+          points[i]['color'] = years_colors[year]
+          points[i]['r'] = radiusSelected
+        }else{
+          points[i]['color'] = 'rgba(0, 0, 0, 0.1)'
+          points[i]['r'] = radiusUnselected
+        }
+      }
+      updateMainCircles()
+      updatePollutantCircles()
+      updateSeries()
+    }
+
+    function resetSelection(){
+      for( var i = 0; i < points.length; i++){
+        points[i]['color'] = 'rgba(0, 0, 0, 1)'
+      }
+    }
+
+    function showVal(value, pollutant_id){
+      var alphas = []
+      for  (var i = 0; i < all_pollutants.length; i++) {
+        if (all_pollutants[i]['id'] == pollutant_id) {
+          all_pollutants[i]['val'] = value
+        }
+        alphas.push(all_pollutants[i]['val'])
+      }
+
+      base_url = "/main/projection/{{dataset.id}}/"
+
+      d3.json(base_url + alphas, function(error, data){
+        var coordenates = JSON.parse(data);
+        for (var i = 0; i < coordenates.length; i++){
+          points[i]['m_pos'] = coordenates[i]
+        }
+        updateMainCircles();
+      })
+    }
+
+    function myFunction() {
+      document.getElementById("myDropdown").classList.toggle("show");
+    }
+    
+    // Close the dropdown menu if the user clicks outside of it
+    window.onclick = function(event) {
+      if (!event.target.matches('.dropbtn')) {
+        var dropdowns = document.getElementsByClassName("dropdown-content");
+        var i;
+        for (i = 0; i < dropdowns.length; i++) {
+          var openDropdown = dropdowns[i];
+          if (openDropdown.classList.contains('show')) {
+            openDropdown.classList.remove('show');
+          }
+        }
+      }
+    } 
+    
+  </script>
+  
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
   <script>
-      d3.json("{% url 'windows' %}", function (error, data) {
-        var margin = {top: 10, right: 30, bottom: 30, left: 60},
-        scWidth = 400 - margin.left - margin.right,
-        scHeight = 400 - margin.top - margin.bottom;
+      // Sizes stuff
+      var margin = {top: 10, right: 10, bottom: 20, left: 10}
+      var mainWidth = 400 - margin.left - margin.right
+      var mainHeight = 400 - margin.top - margin.bottom
+      var radiusSelected = 6;
+      var radiusUnselected = 4;
 
-        var r = 5;
 
+      var spanelWidth = 300 - margin.left - margin.right;
+      var spanelHeight = 300 - margin.top - margin.bottom;
+
+      {% comment %} var selectedColor = '#2c44a3' {% endcomment %}
+      {% comment %} var unselectedColor = '#000000' {% endcomment %}
+      var selectedColor = 'rgba( 17, 5, 120, 0.7 )'
+      var unselectedColor = 'rgba( 0, 0, 0, 0.1 )'
+      var mainProjectionSvg = 0;
+      var pollutantProjectionSvg = 0;
+      var timeSeriesSvg = 0;
+      
+
+      d3.json("{% url 'windows' dataset.id %}", function (error, data) {
+
+        // Parse json
+        var jsonData = JSON.parse(data);
+        data = JSON.parse(data);
+
+        points = []
+        for (var i = 0; i < data.length; i++) {
+          point_data = {}
+          point_data['m_pos'] = [data[i].fields["g_x"], data[i].fields["g_y"]]
+          point_data['p_pos'] = [data[i].fields["x"], data[i].fields["y"]]
+          point_data['station_id'] = data[i].fields['station']
+          point_data['color'] = 'rgba( 0, 0, 0, 1 )'
+          point_data['r'] = radiusUnselected
+          point_data['serie'] = Array.from({length: 365}, (_, i) => [0,1])
+          point_data['year'] = parseInt(data[i].fields['begin_date'].substring(0, 4))
+          
+          
+          var ite = Array.from({length: 365}, (_, i) => i + 1)
+          var values = JSON.parse(data[i].fields.values)
+          values = values.map(Number);
+          for (var j = 0; j < 365; j++) {
+            point_data['serie'][j][1] = values[j];
+            point_data['serie'][j][0] = ite[j];
+          }
+          points.push(point_data);
+        }
+
+
+        // Prepare the data
         for (var i = 0; i < data.length; i++) {
           var obj = data[i];
+          var values = JSON.parse(obj.fields.values)
+          obj.values = values.map(Number);
+
           var xscale = d3.scaleLinear()
-                .range([0,scWidth])
+                .range([0,mainWidth])
                 .domain([0,365]);
+          
           obj['x_axis'] = d3.axisBottom().scale(xscale)
           obj['x_val']  = Array.from({length: 365}, (_, i) => i + 1)
-
-
           obj['path'] = Array.from({length: 365}, (_, i) => [0,1])
 
           for (var j = 0; j < 365; j++) {
@@ -45,301 +404,395 @@
             obj.path[j][0] = obj.x_val[j];
           }
           data[i] = obj
-
         }
-        // var data = new Array(100).fill(null).map(m=>[Math.random(),Math.random()]);
-        // console.log(data);
-        // console.log(data[0]["x"]);
-        var svgArea = d3
-          .select("#svgHere")
-          .append("svg")
-          .attr("width", scWidth + margin.left + margin.right)
-          .attr("height", scHeight + margin.top + margin.bottom);
 
-        var svg = svgArea
+        // Setting main projection
+        var mainProjectionArea = d3
+          .select("#mainProj")
+          .append("svg")
+          .attr("width", mainWidth + margin.left + margin.right)
+          .attr("height", mainHeight + margin.top + margin.bottom);
+
+        mainProjectionSvg = mainProjectionArea
             .append("g")
             .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
         
         var x = d3.scaleLinear()
-          .domain([-30, 30])
-          .range([ 0, scWidth ]);
-        console.log(scHeight);
-        console.log(margin.bottom);
-        svg.append("g")
-          .attr("transform", "translate(0," + scHeight + ")")
+          .domain([-1, 1])
+          .range([ 0, mainWidth ]);
+        
+        mainProjectionSvg.append("g")
+          .attr("transform", "translate(0," + mainHeight + ")")
           .call(d3.axisBottom(x));
         
         var y = d3.scaleLinear()
-          .domain([0, 100])
-          .range([ scHeight, 0]);
-        svg.append("g")
-          .call(d3.axisLeft(y));
+          .domain([-1, 1])
+          .range([ mainHeight, 0]);
 
-        var circles = svg
+        mainProjectionSvg.append("g")
+          .call(d3.axisLeft(y));
+        
+
+        var circles = mainProjectionSvg
           .append("g")
           .selectAll(".dot")
-          .data(data)
+          .data(points)
           .enter()
           .append("circle")
-          .attr("cx", (d) => x(d["x"]))
-          .attr("cy", (d) => y(d["y"]))
-          .attr("r", r);
-        console.log(data);
+          .attr("cx", (d) => x(d.m_pos[0]))
+          .attr("cy", (d) => y(d.m_pos[1]))
+          .attr("r", radiusUnselected);
+
+
+
+        
+        
+        // Setting pollutant projection
+        var pollutantProjectionArea = d3
+          .select("#pollutantProj")
+          .append("svg")
+          .attr("width", spanelWidth + margin.left + margin.right)
+          .attr("height", spanelHeight + margin.top + margin.bottom);
+
+        pollutantProjectionSvg = pollutantProjectionArea
+            .append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+        
+        var x = d3.scaleLinear()
+          .domain([-1, 1])
+          .range([ 0, spanelWidth ]);
+        
+        pollutantProjectionSvg.append("g")
+          .attr("transform", "translate(0," + spanelHeight + ")")
+          .call(d3.axisBottom(x));
+        
+        var y = d3.scaleLinear()
+          .domain([-1, 1])
+          .range([ spanelHeight, 0]);
+        pollutantProjectionSvg.append("g")
+          .call(d3.axisLeft(y));
+
+        var pollutantCircles = pollutantProjectionSvg
+          .append("g")
+          .selectAll(".dot")
+          .data(points)
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => x(d.p_pos[0]))
+          .attr("cy", (d) => y(d.p_pos[1]))
+          .attr("r", radiusUnselected);
+
 
         // Lasso functions
-        var lasso_start = function () {
-          lasso
+        var lasso_main_start = function () {
+          lassoMain
             .items()
-            .attr("r", 5) // reset size
+            .attr("r", radiusUnselected)
             .classed("not_possible", true)
             .classed("selected", false);
         };
-
-        var lasso_draw = function () {
-          // Style the possible dots
-          lasso
+        var lasso_main_draw = function () {
+          lassoMain
             .possibleItems()
             .classed("not_possible", false)
             .classed("possible", true);
-
-          // Style the not possible dot
-          lasso
+          lassoMain
             .notPossibleItems()
             .classed("not_possible", true)
             .classed("possible", false);
         };
 
-        
+        // Lasso functions
+        var lasso_pollutant_start = function () {
+          lassoPollutant
+            .items()
+            .attr("r", radiusUnselected)
+            .classed("not_possible", true)
+            .classed("selected", false);
+        };
+        var lasso_pollutant_draw = function () {
+          lassoPollutant
+            .possibleItems()
+            .classed("not_possible", false)
+            .classed("possible", true);
+          lassoPollutant
+            .notPossibleItems()
+            .classed("not_possible", true)
+            .classed("possible", false);
+        };
+
+      
+
+      timeSeriesSvg = d3.select("#timeSeries")
+        .append("svg")
+          .attr("width", spanelWidth + margin.left + margin.right)
+          .attr("height", spanelHeight + margin.top + margin.bottom)
+        .append("g")
+          .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
 
 
-
-
-
-
-
-
-
-
-
-      var margin = {top: 10, right: 30, bottom: 30, left: 60},
-      width = 460 - margin.left - margin.right,
-      height = 400 - margin.top - margin.bottom;
-
-      var svg2 = d3.select("#svg2Here")
-    .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform",
-            "translate(" + margin.left + "," + margin.top + ")");
-
-      console.log("Holi");
-
-        {% comment %} for (var i = 0; i < data.length; i++) {
-          var obj = data[i];
-          var xscale = d3.scaleLinear()
-                .range([0,width])
-                .domain([0,365]);
-          obj['x_axis'] = d3.axisBottom().scale(xscale)
-          obj['x_val']  = Array.from({length: 365}, (_, i) => i + 1)
-
-
-          obj['path'] = Array.from({length: 365}, (_, i) => [0,1])
-
-          for (var j = 0; j < 365; j++) {
-            obj.path[j][0] = obj.values[j];
-            obj.path[j][1] = obj.x_val[j];
-          }
-          data[i] = obj
-
-        } {% endcomment %}
-
-        // Add X axis --> it is a date format
         var x = d3.scaleLinear()
-          .domain(d3.extent(data, function(d) { return d.values; }))
-          .range([ 0, width ]);
-        svg2.append("g")
-          .attr("transform", "translate(0," + height + ")")
-          .call(d3.axisBottom(x).ticks(5));
+          .domain(365)
+          .range([ 0, spanelWidth ]);
+        
+        timeSeriesSvg.append("g")
+          .attr("transform", "translate(0," + spanelHeight + ")")
+          .call(d3.axisBottom(x));
+        timeSeriesSvg.append("g")
+          .attr("transform", "translate(0," + spanelHeight + ")");
 
         // Add Y axis
         var y = d3.scaleLinear()
-          .domain([0, d3.max(data, function(d) { return +d.x_val; })])
-          .range([ height, 0 ]);
+          .domain([0, 400])
+          .range([ spanelHeight, 0 ]);
 
-        svg2.append("g")
+        timeSeriesSvg.append("g")
           .call(d3.axisLeft(y));
 
-        
-
-        // Draw the line
-        // svg2.selectAll(".line")
-           // .data(data)
-            // .enter()
-            // .append("path")
-               //.attr("fill", "none")
-              //.attr("stroke", '#377eb8')
-              //.attr("stroke-width", 1.5)
-              //.attr("d", function(d){
-              //  return d3.line()
-              //    .x(function(d) {
-              //      {% comment %} console.log(d[0]); {% endcomment %}
-              //      return (d[0]);
-              //    })
-              //    .y(function(d) { return d[1]; })
-              //    (d.path)
-              //})
-
-
-
-
-
-
+        updateSeries()
 
         function updateData(selectedData, unselectedData) {
 
-          {% comment %} var circles = svg
-          .selectAll(".dot")
-          .data(data)
-          .enter()
-          .selectAll("circle")
-          .attr("fill", '#348482' )
-          // .attr("cx",d=>d[0]* w)
-          // .attr("cy",d=>d[1] *h)
-          .attr("r", r); {% endcomment %}
+          // Update main view
+          var xMain = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([ 0, mainWidth ]);
+          
+          var yMain = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([ mainHeight, 0]);
 
-          path = svg2.selectAll("path");
+          circlesMain = mainProjectionSvg.selectAll("circle");
+          circlesMain.remove();
+
+          var circlesMain = mainProjectionSvg
+          .append("g")
+          .selectAll(".dot")
+          .data(selectedData)
+          .enter()
+          .append("circle")
+          .style('fill', function(d,i) {
+              return selectedColor;
+          })
+          .attr("cx", (d) => xMain(d.m_pos[0]))
+          .attr("cy", (d) => yMain(d.m_pos[1]))
+          .attr("r", radiusSelected);
+        
+          var circlesMain = mainProjectionSvg
+          .append("g")
+          .selectAll(".dot")
+          .data(unselectedData)
+          .enter()
+          .append("circle")
+          .style('fill', function(d,i) {
+              return unselectedColor;
+          })
+          .attr("cx", (d) => xMain(d.m_pos[0]))
+          .attr("cy", (d) => yMain(d.m_pos[1]))
+          .attr("r", radiusUnselected);
+          
+          circlesMain = mainProjectionSvg.selectAll("circle");
+
+          lassoMain.items(circlesMain)
+
+
+          // Update pollutant projection view
+          var xPoll = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([ 0, spanelWidth ]);
+          
+          var yPoll = d3.scaleLinear()
+            .domain([-1, 1])
+            .range([ spanelHeight, 0]);
+
+          circlesPoll = pollutantProjectionSvg.selectAll("circle");
+          circlesPoll.remove();
+
+          var circlesPoll = pollutantProjectionSvg
+          .append("g")
+          .selectAll(".dot")
+          .data(selectedData)
+          .enter()
+          .append("circle")
+          .style('fill', function(d,i) {
+              return selectedColor;
+          })
+          .attr("cx", (d) => xPoll(d.p_pos[0]))
+          .attr("cy", (d) => yPoll(d.p_pos[1]))
+          .attr("r", radiusSelected);
+        
+          var circlesPoll = pollutantProjectionSvg
+          .append("g")
+          .selectAll(".dot")
+          .data(unselectedData)
+          .enter()
+          .append("circle")
+          .style('fill', function(d,i) {
+              return unselectedColor;
+          })
+          .attr("cx", (d) => xPoll(d.p_pos[0]))
+          .attr("cy", (d) => yPoll(d.p_pos[1]))
+          .attr("r", radiusUnselected);
+          
+          circlesPoll = pollutantProjectionSvg.selectAll("circle");
+
+          lassoPollutant.items(circlesPoll);
+
+
+
+
+          // Update time series
+          path = timeSeriesSvg.selectAll("path");
           path.remove();
 
-
-
-          svg2.selectAll(".line")
+          var x = d3.scaleLinear()
+          .domain(365)
+          .range([ 0, spanelWidth ]);
+          var y = d3.scaleLinear()
+          .domain([0, 100])
+          .range([ spanelHeight, 0 ]);
+          
+          timeSeriesSvg.selectAll(".line")
             .data(selectedData)
             .enter()
             .append("path")
               .attr("fill", "none")
-              .attr("stroke", '#177eb8')
+              .attr("stroke", selectedColor)
               .attr("stroke-width", 2.5)
               .attr("d", function(d){
                 return d3.line()
                   .x(function(d) {
-                    {% comment %} console.log(d[0]); {% endcomment %}
                     return (d[0]);
                   })
-                  .y(function(d) { return d[1]; })
-                  (d.path)
+                  .y(function(d) { return y(d[1]); })
+                  (d.serie)
               })
             
-          svg2.selectAll(".line")
+          timeSeriesSvg.selectAll(".line")
             .data(unselectedData)
             .enter()
             .append("path")
               .attr("fill", "none")
-              .attr("stroke", '#872eb8')
-              .attr("stroke-width", 2.5)
+              .attr("stroke", unselectedColor)
+              .attr("stroke-width", 2)
               .attr("d", function(d){
                 return d3.line()
                   .x(function(d) {
-                    {% comment %} console.log(d[0]); {% endcomment %}
                     return (d[0]);
                   })
-                  .y(function(d) { return d[1]; })
-                  (d.path)
+                  .y(function(d) { return y(d[1]); })
+                  (d.serie)
               })
+
+            timeSeriesSvg.append("g")
+              .attr("transform", "translate(0," + spanelHeight + ")")
+              .call(d3.axisBottom(x));
+            timeSeriesSvg.append("g")
+              .attr("transform", "translate(0," + spanelHeight + ")")
+              .call(d3.axisBottom(x).ticks(5));
+            timeSeriesSvg.append("g")
+              .call(d3.axisLeft(y));
           
           
-          console.log("TEST");
-          console.log(selectedData);
-          console.log(data);
-
-
-          console.log("LOGGING");
-          var line = d3.select('#svg2Here').selectAll(".line").data(data)
-          console.log(line)
-          line.select('path')
-            .attr("stroke-width", 3.5)
-          
-
-
-
-          line.exit().remove(); 
-          {% comment %} .enter().append("path")
-          .style('stroke', function(d,i) {
-            
-            return '#771e48';
-          })
-          .style('fill', function(d,i) {
-            
-              return '#771e48';
-          }) {% endcomment %}
         }
 
 
         
 
-        var lasso_end = function () {
+        var lasso_main_end = function () {
           // Reset the color of all dots
-          lasso.items().classed("not_possible", false).classed("possible", false);
+          lassoMain.items().classed("not_possible", false).classed("possible", false);
 
           // Style the selected dots
-          lasso.selectedItems().classed("selected", true).attr("r", 7);
+          lassoMain.selectedItems().classed("selected", true).attr("r", radiusSelected);
 
           // Reset the style of the not selected dots
-          lasso.notSelectedItems().attr("r", 3.5);
+          lassoMain.notSelectedItems().attr("r", radiusUnselected);
 
           var selectedArray = [];
           var notSelectedArray = [];
 
-          var selected = lasso.selectedItems().filter(function (d) {
-            console.log(d);
+          var selected = lassoMain.selectedItems().filter(function (d) {
             selectedArray.push(d);
             return d.selected === true;
           });
 
-          var notSelected = lasso.notSelectedItems().filter(function (d) {
-            console.log(d);
+          var notSelected = lassoMain.notSelectedItems().filter(function (d) {
             notSelectedArray.push(d);
             return d.selected === true;
           });
 
-
-
-          console.log('arr')
-          console.log(selected)
-          console.log(lasso.selectedItems())
-
-          selectedData = lasso.selectedItems().classed("selected", true);
+          selectedData = lassoMain.selectedItems().classed("selected", true);
 
           {% comment %} var circles = svg
           .selectAll("circle")
           .attr("fill", '#948082' )
           .attr("r", 6); {% endcomment %}
 
-          selectedData
+          {% comment %} selectedData
             .attr("fill", '#948082' )
             .attr("r", 6)
           
-          lasso.notSelectedItems()
+          lassoMain.notSelectedItems()
             .attr("r", 3.5)
-            .attr("fill", '#000000');
+            .attr("fill", '#000000'); {% endcomment %}
 
 
           updateData(selectedArray, notSelectedArray);
-          
-
         };
-        var lasso = d3
+
+        var lasso_pollutant_end = function () {
+          // Reset the color of all dots
+          lassoPollutant.items().classed("not_possible", false).classed("possible", false);
+
+          // Style the selected dots
+          lassoPollutant.selectedItems().classed("selected", true).attr("r", radiusSelected);
+
+          // Reset the style of the not selected dots
+          lassoPollutant.notSelectedItems().attr("r", radiusUnselected);
+
+          var selectedArray = [];
+          var notSelectedArray = [];
+
+          var selected = lassoPollutant.selectedItems().filter(function (d) {
+            selectedArray.push(d);
+            return d.selected === true;
+          });
+
+          var notSelected = lassoPollutant.notSelectedItems().filter(function (d) {
+            notSelectedArray.push(d);
+            return d.selected === true;
+          });
+
+          selectedData = lassoPollutant.selectedItems().classed("selected", true);
+          updateData(selectedArray, notSelectedArray);
+        };
+
+        lassoMain = d3
           .lasso()
           .closePathSelect(true)
-          .closePathDistance(100)
+          .closePathDistance(200)
           .items(circles)
-          .targetArea(svgArea)
-          .on("start", lasso_start)
-          .on("draw", lasso_draw)
-          .on("end", lasso_end);
+          .targetArea(mainProjectionArea)
+          .on("start", lasso_main_start)
+          .on("draw", lasso_main_draw)
+          .on("end", lasso_main_end);
+        mainProjectionArea.call(lassoMain);
 
-        svgArea.call(lasso);
+        lassoPollutant = d3
+          .lasso()
+          .closePathSelect(true)
+          .closePathDistance(200)
+          .items(pollutantCircles)
+          .targetArea(pollutantProjectionArea)
+          .on("start", lasso_pollutant_start)
+          .on("draw", lasso_pollutant_draw)
+          .on("end", lasso_pollutant_end);
+        pollutantProjectionArea.call(lassoPollutant);
+        
 
 
 

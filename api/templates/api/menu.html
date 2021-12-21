@@ -1,0 +1,24 @@
+{% extends 'api/layout.html' %} 
+{% load unicorn %} 
+{% unicorn_scripts %} 
+{%block content %} 
+{% load static %}
+
+<div class="container" style="position: relative">
+  <h1>Datasets</h1>
+
+  {% for dataset in datasets %}
+    <button onclick="location.href='{% url 'main' dataset.id %}';" type="button" class="btn btn-primary">{{dataset.name}}</button>
+  {% endfor %}
+
+  <script>
+    function myFunction() {
+      document.getElementById("demo").style.color = "red";
+    }
+  </script>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
+</div>
+
+{% endblock %}
