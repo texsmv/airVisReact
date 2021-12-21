@@ -1,0 +1,64 @@
+{% extends 'api/layout.html' %} 
+{% load unicorn %} 
+{% unicorn_scripts %} 
+{%block content %} 
+{% load static %}
+
+<div  class="container" style="position: relative">
+  <h1>Dataset summary</h1>
+
+  <ul class="list-group">
+    <li class="list-group-item"><b>Dataset name:</b> {{ dataset.name }}</li>
+    <li class="list-group-item"><b>Pollutants:</b> 
+      {% for pollutant in pollutants %}
+        {{pollutant.name}},
+      {% endfor %}
+    </li>
+    <li class="list-group-item"><b>Stations:</b> 
+      {% for station in stations %}
+        {{station.name}},
+      {% endfor %}
+    </li>
+    <li class="list-group-item"><b>Min year:</b> {{ min_year }}</li>
+    <li class="list-group-item"><b>Max year:</b> {{ max_year }}</li>
+  </ul>
+
+  <div class="row">
+  {% for key, pollutantDates in dates.items %}
+      <div class="col-sm">
+      <ul class="list-group">
+      <li class="list-group-item">
+        {{key}}
+      </li>
+      {% for key2, stationDates in pollutantDates.items %}
+        <li class="list-group-item">
+          {{key2}} - 
+          {% for station in stationDates %}
+            {% if station.1 %}
+              <b>{{station.0}}</b>
+            {% else %}
+              {{station.0}}
+            {% endif %}
+          {% endfor %}
+        </li>
+        
+      {% endfor %}
+      </ul>
+      </div>
+    {% endfor %}
+    </div>
+
+    {% comment %} {% for pollutant in pollutants %}
+      {% for station in stations %}
+        <li class="list-group-item">{{ dates[pollutant.name][s.name] }}</li>
+        
+      {% endfor %}
+    {% endfor %} {% endcomment %}
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
+
+</div>
+
+{% endblock %}
+
