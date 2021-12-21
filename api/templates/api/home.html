@@ -39,7 +39,6 @@
           <div id="pollutantProj" style="width: 9cm;" class="col-md-1">
             <h4 id='selectedPollutantTitle'>  Projection for: {{selected_pollutant.name}}</h4>
           </div>
-          <p>----------------- Shape axis -------------------</p>
         </div>
         <div class="col-md-4">
           <div id="timeSeries" style="width: 9cm;" class="col-md-1">
@@ -142,6 +141,9 @@
       .attr("r", function(d,i) {
         return d.r;
       });
+
+      
+
       
       circlesMain = mainProjectionSvg.selectAll("circle");
   
@@ -180,15 +182,6 @@
     }
 
     function updateSeries(){
-      var x = d3.scaleLinear()
-      .domain(365)
-      .range([ 0, spanelWidth ]);
-      var y = d3.scaleLinear()
-      .domain([0, 100])
-      .range([ spanelHeight, 0 ]);
-    
-      
-      
 
       path = timeSeriesSvg.selectAll("path");
       path.remove();
@@ -206,19 +199,19 @@
           .attr("d", function(d){
             return d3.line()
               .x(function(d) {
-                return d[0];
+                return xS(d[0]);
               })
-              .y(function(d) { return y(d[1]); })
+              .y(function(d) { return yS(d[1]); })
               (d.serie)
           })
         
-        timeSeriesSvg.append("g")
+        {% comment %} timeSeriesSvg.append("g")
           .attr("transform", "translate(0," + spanelHeight  + ")")
-          .call(d3.axisBottom(x));
+          .call(d3.axisBottom(xS));
         
         timeSeriesSvg.append("g")
           .attr("transform", "translate(30, 0)")
-          .call(d3.axisLeft(y));
+          .call(d3.axisLeft(yS)); {% endcomment %}
 
         
     }
@@ -337,15 +330,17 @@
   <script src="{% static 'd3-lasso/build/d3-lasso.min.js' %}"></script>
   <script>
       // Sizes stuff
-      var margin = {top: 10, right: 10, bottom: 20, left: 10}
+      var margin = {top: 10, right: 0, bottom: 40, left: 40}
       var mainWidth = 400 - margin.left - margin.right
       var mainHeight = 400 - margin.top - margin.bottom
       var radiusSelected = 6;
       var radiusUnselected = 4;
 
+      var spanel = 300
 
-      var spanelWidth = 300 - margin.left - margin.right;
-      var spanelHeight = 300 - margin.top - margin.bottom;
+
+      var spanelWidth = spanel - margin.left - margin.right;
+      var spanelHeight = spanel - margin.top - margin.bottom;
 
       {% comment %} var selectedColor = '#2c44a3' {% endcomment %}
       {% comment %} var unselectedColor = '#000000' {% endcomment %}
@@ -354,6 +349,14 @@
       var mainProjectionSvg = 0;
       var pollutantProjectionSvg = 0;
       var timeSeriesSvg = 0;
+
+      var xS = d3.scaleLinear()
+        .domain([0, 365])
+        .range([ 0, spanelWidth ]);
+      var yS = d3.scaleLinear()
+        .domain([800, 0])
+        .range([0, spanelHeight]);
+
       
 
       d3.json("{% url 'windows' dataset.id %}", function (error, data) {
@@ -443,8 +446,8 @@
           .attr("cx", (d) => x(d.m_pos[0]))
           .attr("cy", (d) => y(d.m_pos[1]))
           .attr("r", radiusUnselected);
-
-
+        
+        
 
         
         
@@ -483,6 +486,26 @@
           .attr("cx", (d) => x(d.p_pos[0]))
           .attr("cy", (d) => y(d.p_pos[1]))
           .attr("r", radiusUnselected);
+
+
+        var middle = spanel / 2;
+
+        pollutantProjectionArea
+            .append('g')
+            .attr('transform', 'translate(' + 10 + ', ' + middle + ')')
+            .append('text')
+            .attr('text-anchor', 'middle')
+            .attr('transform', 'rotate(-90)')
+            .text('Magnitude');
+
+        pollutantProjectionArea
+            .append('g')
+            .attr('transform', 'translate(' + middle + ', ' + (spanel - 10) + ')')
+            .append('text')
+            .attr('text-anchor', 'middle')
+            .text('Shape');
+
+  
 
 
         // Lasso functions
@@ -533,24 +556,26 @@
           .attr("transform",
                 "translate(" + margin.left + "," + margin.top + ")");
 
-
-        var x = d3.scaleLinear()
-          .domain(365)
-          .range([ 0, spanelWidth ]);
+        
+        
         
         timeSeriesSvg.append("g")
           .attr("transform", "translate(0," + spanelHeight + ")")
-          .call(d3.axisBottom(x));
+          .call(d3.axisBottom(xS));
         timeSeriesSvg.append("g")
           .attr("transform", "translate(0," + spanelHeight + ")");
 
         // Add Y axis
-        var y = d3.scaleLinear()
-          .domain([0, 400])
-          .range([ spanelHeight, 0 ]);
+        
 
         timeSeriesSvg.append("g")
-          .call(d3.axisLeft(y));
+          .attr("transform", "translate(0," + spanelHeight + ")")
+          .call(d3.axisBottom(xS));
+        timeSeriesSvg.append("g")
+          .attr("transform", "translate(0," + spanelHeight + ")")
+          .call(d3.axisBottom(xS).ticks(5));
+        timeSeriesSvg.append("g")
+          .call(d3.axisLeft(yS));
 
         updateSeries()
 
@@ -648,12 +673,11 @@
           path = timeSeriesSvg.selectAll("path");
           path.remove();
 
-          var x = d3.scaleLinear()
-          .domain(365)
-          .range([ 0, spanelWidth ]);
-          var y = d3.scaleLinear()
-          .domain([0, 100])
-          .range([ spanelHeight, 0 ]);
+
+          console.log(spanelHeight);
+          console.log(y(30));
+          console.log(y(100));
+          console.log(y(200));
           
           timeSeriesSvg.selectAll(".line")
             .data(selectedData)
@@ -665,9 +689,9 @@
               .attr("d", function(d){
                 return d3.line()
                   .x(function(d) {
-                    return (d[0]);
+                    return xS(d[0]);
                   })
-                  .y(function(d) { return y(d[1]); })
+                  .y(function(d) { return yS(d[1]); })
                   (d.serie)
               })
             
@@ -681,20 +705,13 @@
               .attr("d", function(d){
                 return d3.line()
                   .x(function(d) {
-                    return (d[0]);
+                    return xS(d[0]);
                   })
-                  .y(function(d) { return y(d[1]); })
+                  .y(function(d) { return yS(d[1]); })
                   (d.serie)
               })
 
-            timeSeriesSvg.append("g")
-              .attr("transform", "translate(0," + spanelHeight + ")")
-              .call(d3.axisBottom(x));
-            timeSeriesSvg.append("g")
-              .attr("transform", "translate(0," + spanelHeight + ")")
-              .call(d3.axisBottom(x).ticks(5));
-            timeSeriesSvg.append("g")
-              .call(d3.axisLeft(y));
+        
           
           
         }
