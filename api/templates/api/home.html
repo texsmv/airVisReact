@@ -14,6 +14,11 @@
   {% else %}
   <div class="container-fluid">
     <div class="col-md-10">
+      <div style="width: 5cm;" class="col-md-1">
+        <label for="customRange1" class="form-label">Shape ratio</label>
+        <p> 1 to only use shape descriptor 0 to use only the mean magnitude </p>
+        <input type="range" class="form-range" id="range1" onchange='showRatio(this.value)' min="0" max="1" step="0.01" value="0.5">
+      </div>
       <div class="row">
         <div class="col-md-2">
           {% for pollutant in pollutants %}
@@ -27,7 +32,7 @@
         </div>
         <div class="col-md-6">
           <div id="mainProj" style="width: 20cm;" class="col-md-1">
-            <h2>Main projection</h2>
+            <h3>Main projection</h3>
           </div>
         </div>
       </div>
@@ -37,13 +42,15 @@
             <button type="button" onclick="selectPollutant({{pollutant.id}})" class="btn btn-secondary">{{pollutant.name}}</button>
           {% endfor %}
           <div id="pollutantProj" style="width: 9cm;" class="col-md-1">
-            <h4 id='selectedPollutantTitle'>  Projection for: {{selected_pollutant.name}}</h4>
+            <h3 id='selectedPollutantTitle'>  Projection for: {{selected_pollutant.name}}</h3>
           </div>
         </div>
         <div class="col-md-4">
           <div id="timeSeries" style="width: 9cm;" class="col-md-1">
-            <h3>Time series</h3>
             <br>
+            <br>
+            <br>
+            <h3>Time series</h3>
           </div>
         </div>
         <div class="col-md-4">
@@ -52,7 +59,7 @@
       </div>
     </div>
 
-    <div class="col-md-2">
+    <div class="col-md-1">
       <div class="row">
         <h3> Stations </h3>
       </div>
@@ -63,10 +70,12 @@
         </div>
       {% endfor %}
 
+    </div>
+    <div class="col-md-1">
       <div class="row">
         <h3> Years </h3>
       </div>
-
+  
       {% for year in years %}
         <div class="row">
           <button id = 'year_{{year}}' type="button" onclick="selectYear({{year}})" class="btn btn-secondary">{{year}}</button>
@@ -82,6 +91,7 @@
     var pollutant_coordenates = []
     var windows = []
     var norm_windows = []
+    var ratio = 0.5
 
     var all_pollutants = []
     var selected_pollutant = {}
@@ -286,7 +296,29 @@
       }
     }
 
+    function showRatio(value){
+      ratio = value;
+      var alphas = []
+      for  (var i = 0; i < all_pollutants.length; i++) {
+        alphas.push(all_pollutants[i]['val'])
+      }
+
+      base_url = "/main/projection/{{dataset.id}}/"
+
+      console.log(ratio)
+
+
+      d3.json(base_url + alphas + '/' + ratio, function(error, data){
+        var coordenates = JSON.parse(data);
+        for (var i = 0; i < coordenates.length; i++){
+          points[i]['m_pos'] = coordenates[i]
+        }
+        updateMainCircles();
+      })
+    }
+
     function showVal(value, pollutant_id){
+
       var alphas = []
       for  (var i = 0; i < all_pollutants.length; i++) {
         if (all_pollutants[i]['id'] == pollutant_id) {
@@ -297,7 +329,9 @@
 
       base_url = "/main/projection/{{dataset.id}}/"
 
-      d3.json(base_url + alphas, function(error, data){
+
+
+      d3.json(base_url + alphas + '/' + ratio, function(error, data){
         var coordenates = JSON.parse(data);
         for (var i = 0; i < coordenates.length; i++){
           points[i]['m_pos'] = coordenates[i]
@@ -515,6 +549,7 @@
             .attr("r", radiusUnselected)
             .classed("not_possible", true)
             .classed("selected", false);
+          
         };
         var lasso_main_draw = function () {
           lassoMain
