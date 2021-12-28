@@ -3,7 +3,7 @@ from .views import AnnualWindowsView, d3Tuto, main, DatasetView, DatasetsListVie
 
 urlpatterns = [
     path('main/<str:dataset_id>/', main, name='main'),
-    path('main/projection/<str:dataset_id>/<str:alphas>/', main_projection, name='mainProjection'),
+    path('main/projection/<str:dataset_id>/<str:alphas>/<str:ratio>', main_projection, name='mainProjection'),
     path('main/pollutant_projection/<str:dataset_id>/<str:pollutant_id>/', pollutant_projection, name='pollutantProjection'),
     path('', menu, name='menu'),
     path('summary', summary, name='summary'),

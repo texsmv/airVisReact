@@ -71,13 +71,14 @@ def menu(request):
     
     return render(request, 'api/menu.html', context)
 
-def main_projection(request, dataset_id, alphas):
+def main_projection(request, dataset_id, alphas, ratio):
+    ratio = float(ratio)
     alphas_list = alphas.split(',')
     alphas_list = [float(alpha.strip()) for alpha in alphas_list]
 
     dataset = Dataset.objects.get(pk = dataset_id)
 
-    firstPollutant = Pollutant.objects.all()[0]
+    firstPollutant = Pollutant.objects.filter(dataset=dataset)[0]
     windowsAll = AnnualWindow.objects.filter(pollutant=firstPollutant, station__dataset=dataset)
     n = len(windowsAll)
 
@@ -101,7 +102,7 @@ def main_projection(request, dataset_id, alphas):
 
     alphas = { pollutants[i].name: alphas_list[i] for i in range(len(pollutants)) }
 
-    ratio = 0.5
+    # ratio = 0.5
 
     for pollutant in pollutants:
         for i in range(n):
