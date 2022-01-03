@@ -47,3 +47,35 @@ class AnnualWindow(models.Model):
 
     def dataset(self):
         return self.station.dataset
+    
+class DailyWindow(models.Model):
+    pollutant = ForeignKey(Pollutant, on_delete=models.CASCADE)
+    station = ForeignKey(Station, on_delete=models.CASCADE)
+    begin_date = models.DateTimeField()
+    x = models.FloatField(null=True, blank=True)
+    y = models.FloatField(null=True, blank=True)
+    o_x = models.FloatField(null=True, blank=True)
+    o_y = models.FloatField(null=True, blank=True)
+    g_x = models.FloatField(null=True, blank=True)
+    g_y = models.FloatField(null=True, blank=True)
+
+    features = ArrayField(
+        models.FloatField(),
+        null=True,
+        size=10,
+    )
+    
+    magnitud = models.FloatField(null=True)
+    
+    
+    values = ArrayField(
+        models.FloatField(),
+        size=365,
+    )
+    smoothedValues = ArrayField(
+        models.FloatField(),
+        size=365,
+    )
+
+    def dataset(self):
+        return self.station.dataset

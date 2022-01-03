@@ -71,6 +71,13 @@ def menu(request):
     
     return render(request, 'api/menu.html', context)
 
+def all_datasets(request):
+    data = Dataset.objects.all()
+    return JsonResponse(
+        {'data': serializers.serialize('json', data)}, 
+        safe=False
+    )
+
 def main_projection(request, dataset_id, alphas, ratio):
     ratio = float(ratio)
     alphas_list = alphas.split(',')
@@ -165,7 +172,14 @@ def main(request, dataset_id):
     years = [i for i in range(min_year, max_year + 1) ]
     print(years)
     
-
+    return JsonResponse(
+        {
+            'years':json.dumps(years),
+            'pollutants': serializers.serialize('json', pollutants),
+            'stations': serializers.serialize('json', stations),
+        },
+        safe=False
+    )
 
     context = {
         'dataset': dataset,
@@ -261,7 +275,10 @@ def windowsData(request, dataset_id):
     print(coordinates[:, 1].min())
     print(coordinates[:, 1].max())
 
-    return JsonResponse(serializers.serialize('json', AnnualWindow.objects.filter(pollutant = firstPollutant)), safe=False)
+    return JsonResponse(
+        {'data' : serializers.serialize('json', AnnualWindow.objects.filter(pollutant = firstPollutant))}, 
+        safe=False
+    )
 
 def d3Tuto(request):
     return render(request, 'api/d3tuto.html')
