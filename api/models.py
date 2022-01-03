@@ -20,17 +20,11 @@ class AnnualWindow(models.Model):
     pollutant = ForeignKey(Pollutant, on_delete=models.CASCADE)
     station = ForeignKey(Station, on_delete=models.CASCADE)
     begin_date = models.DateTimeField()
-    x = models.FloatField(null=True, blank=True)
-    y = models.FloatField(null=True, blank=True)
-    o_x = models.FloatField(null=True, blank=True)
-    o_y = models.FloatField(null=True, blank=True)
-    g_x = models.FloatField(null=True, blank=True)
-    g_y = models.FloatField(null=True, blank=True)
 
     features = ArrayField(
         models.FloatField(),
         null=True,
-        size=10,
+        size=15,
     )
     
     magnitud = models.FloatField(null=True)
@@ -52,17 +46,11 @@ class DailyWindow(models.Model):
     pollutant = ForeignKey(Pollutant, on_delete=models.CASCADE)
     station = ForeignKey(Station, on_delete=models.CASCADE)
     begin_date = models.DateTimeField()
-    x = models.FloatField(null=True, blank=True)
-    y = models.FloatField(null=True, blank=True)
-    o_x = models.FloatField(null=True, blank=True)
-    o_y = models.FloatField(null=True, blank=True)
-    g_x = models.FloatField(null=True, blank=True)
-    g_y = models.FloatField(null=True, blank=True)
 
     features = ArrayField(
         models.FloatField(),
         null=True,
-        size=10,
+        size=4,
     )
     
     magnitud = models.FloatField(null=True)
