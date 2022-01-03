@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import AnnualWindowsView, d3Tuto, main, DatasetView, DatasetsListView, menu, summary, windowsData, menu, main_projection, pollutant_projection
-
+from .views import all_datasets
 urlpatterns = [
     path('main/<str:dataset_id>/', main, name='main'),
     path('main/projection/<str:dataset_id>/<str:alphas>/<str:ratio>', main_projection, name='mainProjection'),
@@ -9,6 +9,7 @@ urlpatterns = [
     path('summary', summary, name='summary'),
     path('d3', d3Tuto, name='d3tuto'),
     path('datasets', DatasetView.as_view(), name='datasets'),
+    path('all_datasets', all_datasets, name='all_datasets'),
     # path('windows', AnnualWindowsView.as_view(), name='windows'),
     path('windows/<str:dataset_id>/', windowsData, name='windows'),
     path('datasetsList', DatasetsListView.as_view(), name='datasetsList'),
