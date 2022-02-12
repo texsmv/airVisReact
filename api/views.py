@@ -3,15 +3,21 @@ from django.shortcuts import render
 from rest_framework import generics
 from scipy.sparse import data
 from .serializers import DatasetSerializer, AnnualWindowSerializer
-from api.models import AnnualWindow, Dataset, Pollutant, Station
+from api.models import AnnualWindow, Dataset, Pollutant, Station, DailyWindow
 from django.views.generic import ListView
 from django.core import serializers
 from django.http import JsonResponse
 from sklearn.preprocessing import minmax_scale
+from datetime import datetime
+from dateutil import parser
+from fastdist import fastdist
+from sklearn.metrics import pairwise_distances
 
 import json
 import numpy as np
 import umap
+
+
 
 def scale_layout2(points, bound=[-1, 1]):
     p_min = np.min(points, axis=0)
@@ -77,6 +83,26 @@ def all_datasets(request):
         {'data': serializers.serialize('json', data)}, 
         safe=False
     )
+
+def projection(request):
+    distanceMatrix=np.array(json.loads(request.body))
+    print(distanceMatrix.shape)
+    transformer = umap.UMAP(metric='precomputed', n_components=2, force_approximation_algorithm=True,)
+    coordinates = transformer.fit_transform(distanceMatrix)
+    coordinates = scale_layout(coordinates)
+
+    return JsonResponse( {'coordinates' :json.dumps(coordinates.tolist())}, safe=False)
+
+def projection1D(request):
+    distanceMatrix=np.array(json.loads(request.body))
+    print('Matrix shape')
+    print(distanceMatrix.shape)
+    transformer = umap.UMAP(metric='precomputed', n_components=1)
+    coordinates = transformer.fit_transform(distanceMatrix)
+    coordinates = scale_layout(coordinates)
+
+    return JsonResponse( {'coordinates' :json.dumps(coordinates.tolist())}, safe=False)
+
 
 def main_projection(request, dataset_id, alphas, ratio):
     ratio = float(ratio)
@@ -164,31 +190,90 @@ def main(request, dataset_id):
     pollutants = Pollutant.objects.filter(dataset=dataset)
     stations = Station.objects.filter(dataset=dataset)
     firstPollutant = pollutants[0]
-    windows = AnnualWindow.objects.filter(station__dataset=dataset, pollutant=firstPollutant, station=stations[0])
 
-    dates = [window.begin_date.year for window in windows]
-    min_year = min(dates)
-    max_year = max(dates)
-    years = [i for i in range(min_year, max_year + 1) ]
-    print(years)
+    annualDates = {}
+    dailyDates = {}
+    for station in stations:
+        annualDates[station.name] = {}
+        dailyDates[station.name] = {}
+        for pollutant in pollutants:
+            annualWindows = AnnualWindow.objects.filter(station__dataset=dataset, pollutant=pollutant, station=station)
+            dailyWindows = DailyWindow.objects.filter(station__dataset=dataset, pollutant=pollutant, station=station)
+            annualDates[station.name][pollutant.name] = [window.begin_date.isoformat() for window in annualWindows]
+            dailyDates[station.name][pollutant.name] = [window.begin_date.isoformat() for window in dailyWindows]
+
+
+
+
+    # print(dailyDates)
+    # print(annualDates)
+    # dates = [window.begin_date.year for window in windows]
+    # min_year = min(dates)
+    # max_year = max(dates)
+    # years = [i for i in range(min_year, max_year + 1) ]
+    # print(years)
     
     return JsonResponse(
         {
-            'years':json.dumps(years),
+            # 'years':json.dumps(years),
             'pollutants': serializers.serialize('json', pollutants),
             'stations': serializers.serialize('json', stations),
+            'dailyDates': json.dumps(dailyDates),
+            'annualDates': json.dumps(annualDates),
         },
         safe=False
     )
 
-    context = {
-        'dataset': dataset,
-        'pollutants': pollutants,
-        'selected_pollutant': firstPollutant,
-        'stations': stations,
-        'years': years,
-    }
-    return render(request, 'api/home.html', context)
+    # context = {
+    #     'dataset': dataset,
+    #     'pollutants': pollutants,
+    #     'selected_pollutant': firstPollutant,
+    #     'stations': stations,
+    #     'years': years,
+    # }
+    # return render(request, 'api/home.html', context)
+
+def stationAnnualWindows(request, dataset_id, station_id, pollutant_id, begin_date_str, end_date_str):
+    dataset = Dataset.objects.get(pk=dataset_id)
+    station = Station.objects.get(pk=station_id)
+    pollutant = Pollutant.objects.get(pk=pollutant_id)
+
+    begin_date = parser.parse(begin_date_str)
+    end_date = parser.parse(end_date_str)
+
+    windows = AnnualWindow.objects.filter(
+        station__dataset=dataset, 
+        station=station,
+        pollutant=pollutant,
+        begin_date__gte=begin_date,
+        begin_date__lte=end_date,
+    )
+
+    return JsonResponse(
+        {'windows':serializers.serialize('json', windows),},
+        safe=False
+    )
+
+def stationDailyWindows(request, dataset_id, station_id, pollutant_id, begin_date_str, end_date_str):
+    dataset = Dataset.objects.get(pk=dataset_id)
+    station = Station.objects.get(pk=station_id)
+    pollutant = Pollutant.objects.get(pk=pollutant_id)
+
+    begin_date = parser.parse(begin_date_str)
+    end_date = parser.parse(end_date_str)
+
+    windows = DailyWindow.objects.filter(
+        station__dataset=dataset, 
+        station=station,
+        pollutant=pollutant,
+        begin_date__gte=begin_date,
+        begin_date__lte=end_date,
+    )
+
+    return JsonResponse(
+        {'windows':serializers.serialize('json', windows),},
+        safe=False
+    )
 
 def windowsData(request, dataset_id):
     dataset = Dataset.objects.get(pk = dataset_id)
@@ -258,13 +343,13 @@ def windowsData(request, dataset_id):
     coordinates = scale_layout(coordinates)
     coordinates2 = scale_layout(coordinates2)
 
-    for i in range(n):
-        windowsAll[i].g_x = coordinates[i][0]
-        windowsAll[i].g_y = coordinates[i][1]
-        windowsAll[i].x = coordinates2[i][0]
-        windowsAll[i].y = coordinates2[i][1]
-        windowsAll[i].save()
-    print('=------=')
+    # for i in range(n):
+    #     windowsAll[i].g_x = coordinates[i][0]
+    #     windowsAll[i].g_y = coordinates[i][1]
+    #     windowsAll[i].x = coordinates2[i][0]
+    #     windowsAll[i].y = coordinates2[i][1]
+    #     windowsAll[i].save()
+    # print('=------=')
 
     print(coordinates2[:, 0].min())
     print(coordinates2[:, 0].max())
@@ -341,3 +426,26 @@ def summary(request):
         'max_year': curr_max_year,
     }
     return render(request, 'api/summary.html', context)
+
+
+def distanceMatrixVectors(request):
+    data=json.loads(request.body)
+    height = data['height']
+    width =data['width']
+    vectors = np.array(data['matrix'])
+    vectors = vectors.reshape((height, width)).astype(np.float64)
+
+    print(vectors)
+    print(vectors.shape)
+    print(type(vectors[0,0]))
+    # vectors = np.ones((3,3))
+    # print(type(vectors[0,0]))
+
+    # res = fastdist.matrix_pairwise_distance(vectors, fastdist.euclidean, "euclidean", return_matrix=True)
+    res = pairwise_distances(vectors, vectors, n_jobs=10)
+
+    print(res)
+
+    return JsonResponse(
+        {'matrix' : json.dumps(res.flatten().tolist())},
+    )

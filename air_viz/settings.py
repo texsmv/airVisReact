@@ -27,8 +27,23 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '192.168.1.11',
+    '192.168.1.43',
     '0.0.0.0',
+    '127.0.0.1',
+    '10.0.2.2',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    'https://192.168.1.11',
+    'https://192.168.1.43',
+    'https://0.0.0.0',
+    'https://127.0.0.1',
+    'https://10.0.2.2',
+]
+
 
 
 # Application definition
@@ -46,6 +61,7 @@ INSTALLED_APPS = [
     'livereload',
     'django_extensions',
     'django_unicorn',
+    'corsheaders',
     # 'compressor',
     # 'compressor_toolkit',
 ]
@@ -83,6 +99,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'livereload.middleware.LiveReloadScript',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'air_viz.urls'
@@ -168,3 +186,5 @@ STATIC_ROOT = '/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'node_modules'),
 )
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1000242880
